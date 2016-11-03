@@ -1,0 +1,25 @@
+body {
+	padding: 50px;
+	font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+	color: #00B7FF;
+}
+
+input {
+	margin:2px;
+}
+
+.timecode {
+	margin-bottom:5px;
+}
+
+#framerates {
+	padding:10px;
+	margin-bottom:10px;
+}
+
+a {
+	cursor:pointer;
+}
