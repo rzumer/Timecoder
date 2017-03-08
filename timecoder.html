@@ -16,25 +16,25 @@
 			</div>
 			
 			<form>
-				<table id="framerates" class="table table-bordered">
+				<table id="framerates-wrapper" class="table table-bordered">
 					<tr>
 					<th style="font-weight:bold;">
 						Framerates
 					</th>
 					</tr>
 					<tr>
-					<td><input id="oldFramerate" type="text" placeholder="Native Framerate" value="29.97" />
-					<input id="newFramerate" type="text" placeholder="Segment Framerate" value="23.976" /></td>
+					<td><input id="native-framerate-input" type="text" placeholder="Native Framerate" value="29.970" />
+					<input id="segment-framerate-input" type="text" placeholder="Segment Framerate" value="23.976" /></td>
 					</tr>
 				</table>
-				<div id="wrapper">
+				<div id="timecodes-wrapper">
 					<div class="timecode">
-						<input type="text" name="startFrame[]" placeholder="Start Frame" />
-						<input type="text" name="endFrame[]" placeholder="End Frame" />
-						<input type="button" id="addField" class="btn btn-xs btn-default" style="width:50px;" value="Add" />
+						<input type="text" name="start-frame-input[]" placeholder="Start Frame" />
+						<input type="text" name="end-frame-input[]" placeholder="End Frame" />
+						<input type="button" id="add-field-button" class="btn btn-xs btn-default" style="width:50px;" value="Add" />
 					</div>
 				</div>
-				<input id="calculate" class="btn btn-primary pull-right" type="button" value="Generate Timecodes" />
+				<input id="calculate-button" class="btn btn-primary pull-right" type="button" value="Generate Timecodes" />
 			</form>
 		</div>
 		<script src="js/jquery-2.1.3.min.js"></script>

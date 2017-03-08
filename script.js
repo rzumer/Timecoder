@@ -1,79 +1,106 @@
 $(document).ready(function() {
-    var max_fields      = 99; //maximum input boxes allowed
-    var wrapper         = $("#wrapper"); //Fields wrapper
-    var add_button      = $("#addField"); //Add button ID
-	var submit_button	= $("#calculate"); //Calcualte button ID
-   
-    var x = 1; //initlal text box count
-    $(add_button).click(function(e){ //on add input button click
+
+	var wrapper         	= $("#timecodes-wrapper");
+	var addButton			= $("#add-field-button");
+	var submitButton		= $("#calculate-button");
+	
+	// Define the HTML to generate for new timecodes.
+	var deleteButtonHTML	= "<a class='btn-remove btn btn-xs btn-danger'>Remove</a>";
+	var newTimecodeHTML		= wrapper.html().replace(addButton[0].outerHTML, deleteButtonHTML);
+
+    $(addButton).click(function(e) {
         e.preventDefault();
-        if(x < max_fields){ //max input box allowed
-            x++; //text box increment
-            $(wrapper).append('<div class="timecode"><input type="text" name="startFrame[]" placeholder="Start Frame"/> <input type="text" name="endFrame[]" placeholder="End Frame"/> <a class="removeField btn btn-danger btn-xs">Remove</a></div>');
-        }
+		$(wrapper).append(newTimecodeHTML);
     });
    
-    $(wrapper).on("click",".removeField", function(e){ //user click on remove text
-        e.preventDefault(); $(this).parent('div').remove(); x--;
-    })
+    $(wrapper).on("click", ".btn-remove", function(e) {
+        e.preventDefault();
+		$(this).parent("div").remove();
+    });
 	
-	$(submit_button).click(function(e){
+	$(submitButton).click(function(e){
 		e.preventDefault();
 		
-		var startcodes = [];
-		var endcodes = [];
+		// Retrieve and validate framerates.
+		var nativeFramerate = $("#native-framerate-input").val();
+		var segmentFramerate = $("#segment-framerate-input").val();
 		
-		var eflag = false;
-		$('.timecode').each(function(){
-			var start = $(this).find('input[name="startFrame[]"]').val();
-			var end = $(this).find('input[name="endFrame[]"]').val();
-			if(Math.floor(start) != start || !$.isNumeric(start) || Math.floor(end) != end || !$.isNumeric(end))
-				eflag = true;
+		if(!nativeFramerate.trim()) {
+			return alert("A native framerate value is required.");
+		}
+		else if(!segmentFramerate.trim()) {
+			return alert("A segment framerate value is required.");
+		}
+		else if(!$.isNumeric(nativeFramerate) || !$.isNumeric(segmentFramerate)) {
+			return alert("Framerates must be numeric values.");
+		}
+		
+		// Retrieve and validate frame numbers.
+		var startFrames = [];
+		var endFrames = [];
+		
+		var errorFlag = false;
+		
+		// Store valid frame segments.
+		$('.timecode').each(function() {
+			var startFrame = $(this).find("input[name='start-frame-input[]']").val();
+			var endFrame = $(this).find("input[name='end-frame-input[]']").val();
+			
+			if(
+				Math.floor(startFrame) != startFrame 
+				|| !$.isNumeric(startFrame) 
+				|| Math.floor(endFrame) != endFrame 
+				|| !$.isNumeric(endFrame)) {
+				errorFlag = true;
+			}
 				
-			startcodes.push(start);
-			endcodes.push(end);
+			startFrames.push(startFrame);
+			endFrames.push(endFrame);
 		});
-		if(eflag) return alert('Frame numbers must be valid integers.');
 		
-		var oldfps = $("#oldFramerate").val();
-		var newfps = $("#newFramerate").val();
-		if(!oldfps.trim()) return alert('A native framerate value is required.');
-		if(!newfps.trim()) return alert('A segment framerate value is required.');
-		if(!$.isNumeric(oldfps) || !$.isNumeric(newfps)) return alert('Framerates must be numeric values.');
+		if(errorFlag) {
+			return alert("Frame numbers must be valid integers.");
+		}
 		
-		calculateTimecodes(startcodes,endcodes,$("#oldFramerate").val(),$("#newFramerate").val());
+		calculateTimecodes(startFrames, endFrames, nativeFramerate, segmentFramerate);
 	});
 });
 
-function convertFramerate(startframe,endframe,oldfps,newfps)
+function convertFramerate(startFrame, endFrame, oldFramerate, newFramerate)
 {
-	return (endframe - startframe) * newfps / oldfps;
+	return (endFrame - startFrame) * newFramerate / oldFramerate;
 }
 
-function calculateTimecodes(startframes,endframes,oldfps,newfps)
+function calculateTimecodes(startFrames, endFrames, nativeFramerate, segmentFramerate)
 {
-	var startcodes = [];
-	var endcodes = [];
+	var startCodes = [];
+	var endCodes = [];
 	
-	var cur = startframes[0];
+	var currentFrame = startFrames[0];
 		
-	$.each(startframes, function(i, item) {
-		if(startframes[i] != cur)
-			cur = +cur + +startframes[i] - +endframes[i-1];
-		startcodes.push(cur);
-		var count = convertFramerate(startframes[i],endframes[i],oldfps,newfps);
-		cur = +cur + Math.floor(+count);
-		endcodes.push(cur);
+	$.each(startFrames, function(i, item) {
+		if(startFrames[i] != currentFrame) {
+			currentFrame = +currentFrame + +startFrames[i] - +endFrames[i - 1];
+		}
+		
+		startCodes.push(currentFrame);
+		
+		var segmentLength = convertFramerate(startFrames[i], endFrames[i], nativeFramerate, segmentFramerate);
+		currentFrame = +currentFrame + Math.floor(+segmentLength);
+		
+		endCodes.push(currentFrame);
 	});
-	var data = "# timecode format v1\r\nassume " + oldfps + "\r\n";
 	
-	$.each(startcodes, function(i, item) {
-		data += startcodes[i]+","+endcodes[i]+","+newfps+"\r\n";
+	var data = "# timecode format v1\r\nassume " + nativeFramerate + "\r\n";
+	
+	$.each(startCodes, function(i, item) {
+		data += startCodes[i] + "," + endCodes[i] + "," + segmentFramerate + "\r\n";
 	});
 	
 	download(data, "timecodes.txt", "text/plain");
 }
 
+// Download function based on https://github.com/rndme/download/
 function download(strData, strFileName, strMimeType) {
     var D = document,
         A = arguments,
@@ -82,9 +109,8 @@ function download(strData, strFileName, strMimeType) {
         n = A[1],
         t = A[2] || "text/plain";
 
-    //build download link:
+    // Build download URL
     a.href = "data:" + strMimeType + "charset=utf-8," + escape(strData);
-
 
     if (window.MSBlobBuilder) { // IE10
         var bb = new MSBlobBuilder();
@@ -92,9 +118,7 @@ function download(strData, strFileName, strMimeType) {
         return navigator.msSaveBlob(bb, strFileName);
     } /* end if(window.MSBlobBuilder) */
 
-
-
-    if ('download' in a) { //FF20, CH19
+    if ('download' in a) { // FF20, CH19
         a.setAttribute("download", n);
         a.innerHTML = "downloading...";
         D.body.appendChild(a);
@@ -107,9 +131,7 @@ function download(strData, strFileName, strMimeType) {
         return true;
     }; /* end if('download' in a) */
 
-
-
-    //do iframe dataURL download: (older W3)
+    // Do iFrame dataURL download (older W3)
     var f = D.createElement("iframe");
     D.body.appendChild(f);
     f.src = "data:" + (A[2] ? A[2] : "application/octet-stream") + (window.btoa ? ";base64" : "") + "," + (window.btoa ? window.btoa : escape)(strData);
